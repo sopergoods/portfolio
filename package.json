@@ -1,16 +1,7 @@
-<<<<<<< HEAD
 {
   "name": "portfolio",
   "version": "1.0.0",
   "scripts": {
     "start": "npx http-server -p $PORT"
   }
-=======
-{
-  "name": "portfolio",
-  "version": "1.0.0",
-  "scripts": {
-    "start": "npx http-server -p $PORT"
-  }
->>>>>>> 93b7ac9042edb16c8ace2fded7531074d551e537
 }
