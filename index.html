@@ -619,11 +619,7 @@
         .id-card {
             width: 200px;
             height: 280px;
-            background: linear-gradient(135deg, #1a1a1a, #0d0d0d);
-            border: 2px solid #ff3c3c;
             border-radius: 15px;
-            padding: 20px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
             transform-origin: top center;
             cursor: grab;
             user-select: none;
@@ -667,19 +663,22 @@
             left: 0;
             backface-visibility: hidden;
             border-radius: 15px;
-            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
         }
 
         .id-card-front {
             transform: rotateY(0deg);
+            background: linear-gradient(135deg, #1a1a1a, #0d0d0d);
+            border: 2px solid #ff3c3c;
+            padding: 20px;
         }
 
         .id-card-back {
             background: linear-gradient(135deg, #2a0000, #0d0d0d);
             transform: rotateY(180deg);
-            display: flex;
-            align-items: center;
-            justify-content: center;
             border: 2px solid #ff3c3c;
         }
 
@@ -826,6 +825,31 @@
     <section class="hero" id="home">
         <div class="float f1"></div>
         <div class="float f2"></div>
+
+        <!-- DANGLING ID CARD (Fixed Position) -->
+        <div class="id-card-container" id="idCardContainer">
+            <div class="id-string" id="idString"></div>
+            <div class="id-card" id="idCard">
+                <div class="id-card-front">
+                    <div class="id-photo">
+                        <!-- Replace the src below with your actual photo URL -->
+                        <div class="id-placeholder">📷</div>
+                        <!-- Uncomment and add your photo:
+                        <img src="your-photo.jpg" alt="Vince"> -->
+                    </div>
+                    <div class="id-info">
+                        <div class="id-name">VINCE ASUTILLA</div>
+                        <div class="id-title">CS Student</div>
+                        <div class="id-number">ID: 2023-DEV-001</div>
+                    </div>
+                </div>
+                <div class="id-card-back">
+                    <div class="id-card-back-text">
+                        Set Your<br>Heart<br>Ablaze
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!-- DANGLING ID CARD (Fixed Position) -->
         <div class="id-card-container" id="idCardContainer">
@@ -1088,6 +1112,7 @@
         const idCardContainer = document.getElementById('idCardContainer');
         
         let isDragging = false;
+        let isAnimating = false;
         let startX, startY;
         let currentX = 0, currentY = 0;
         let velocityX = 0, velocityY = 0;
@@ -1097,16 +1122,17 @@
         let rotationVelocity = 0;
         let isFlipped = false;
         let animationFrame = null;
+        let dragStartTime = 0;
+        let hasMoved = false;
 
-        const gravity = 0.4;
-        const damping = 0.96;
-        const elasticity = 0.6;
-        const stringLength = 100;
+        const gravity = 0.5;
+        const damping = 0.95;
+        const elasticity = 0.65;
         const restX = 0;
         const restY = 0;
 
         idCard.addEventListener('mousedown', startDrag);
-        idCard.addEventListener('touchstart', startDrag);
+        idCard.addEventListener('touchstart', startDrag, { passive: false });
         document.addEventListener('mousemove', drag);
         document.addEventListener('touchmove', drag, { passive: false });
         document.addEventListener('mouseup', stopDrag);
@@ -1114,12 +1140,16 @@
 
         function startDrag(e) {
             e.preventDefault();
-            isDragging = true;
             
             if (animationFrame) {
                 cancelAnimationFrame(animationFrame);
                 animationFrame = null;
             }
+
+            isDragging = true;
+            isAnimating = false;
+            hasMoved = false;
+            dragStartTime = Date.now();
 
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
             const clientY = e.touches ? e.touches[0].clientY : e.clientY;
@@ -1144,6 +1174,11 @@
             const newX = clientX - startX;
             const newY = clientY - startY;
 
+            // Check if card has moved significantly
+            if (Math.abs(newX - currentX) > 2 || Math.abs(newY - currentY) > 2) {
+                hasMoved = true;
+            }
+
             const now = Date.now();
             const dt = Math.max((now - lastTime) / 16, 1);
             
@@ -1164,18 +1199,28 @@
             if (!isDragging) return;
             isDragging = false;
 
-            // Flip card if pulled far enough
-            const distance = Math.sqrt(currentX * currentX + currentY * currentY);
-            if (distance > 150) {
+            const dragDuration = Date.now() - dragStartTime;
+
+            // Only treat as click if: no movement AND quick release (< 200ms)
+            if (!hasMoved && dragDuration < 200) {
+                // This is a click - flip the card
                 isFlipped = !isFlipped;
                 idCard.classList.toggle('flipped');
+                
+                if (isFlipped) {
+                    idCard.style.transform = `rotateY(180deg)`;
+                } else {
+                    idCard.style.transform = `rotate(0deg)`;
+                }
+            } else {
+                // This was a drag - start bounce animation
+                isAnimating = true;
+                animate();
             }
-
-            animate();
         }
 
         function animate() {
-            if (isDragging) return;
+            if (isDragging || !isAnimating) return;
 
             // Apply gravity
             velocityY += gravity;
@@ -1186,7 +1231,7 @@
             const distance = Math.sqrt(dx * dx + dy * dy);
 
             if (distance > 0.5) {
-                const springForce = distance * 0.03;
+                const springForce = distance * 0.04;
                 velocityX += (dx / distance) * springForce;
                 velocityY += (dy / distance) * springForce;
             }
@@ -1206,18 +1251,18 @@
             if (Math.abs(currentX) > maxX) {
                 currentX = currentX > 0 ? maxX : -maxX;
                 velocityX *= -elasticity;
-                rotationVelocity += velocityX * 0.3;
+                rotationVelocity += velocityX * 0.4;
             }
 
             if (Math.abs(currentY) > maxY) {
                 currentY = currentY > 0 ? maxY : -maxY;
                 velocityY *= -elasticity;
-                rotationVelocity += velocityX * 0.3;
+                rotationVelocity += velocityX * 0.4;
             }
 
             // Update rotation based on velocity
-            rotationVelocity += velocityX * 0.15;
-            rotationVelocity *= 0.93;
+            rotationVelocity += velocityX * 0.18;
+            rotationVelocity *= 0.92;
             rotation += rotationVelocity;
 
             // Limit rotation
@@ -1242,6 +1287,7 @@
                 rotationVelocity = 0;
                 velocityX = 0;
                 velocityY = 0;
+                isAnimating = false;
                 updatePosition();
                 animationFrame = null;
             }
@@ -1253,26 +1299,13 @@
             idCardContainer.style.transform = `translate(${currentX}px, ${currentY}px)`;
             idString.style.transform = `rotate(${stringAngle}deg)`;
             
-            if (!isFlipped) {
-                idCard.style.transform = `rotate(${rotation}deg)`;
-            } else {
+            // Always allow dragging, maintain flip state
+            if (isFlipped) {
                 idCard.style.transform = `rotateY(180deg) rotate(${rotation}deg)`;
+            } else {
+                idCard.style.transform = `rotate(${rotation}deg)`;
             }
         }
-
-        // Click to flip (only when card is at rest)
-        idCard.addEventListener('click', (e) => {
-            if (!isDragging && Math.abs(velocityX) < 0.1 && Math.abs(velocityY) < 0.1) {
-                isFlipped = !isFlipped;
-                idCard.classList.toggle('flipped');
-                
-                if (isFlipped) {
-                    idCard.style.transform = `rotateY(180deg) rotate(${rotation}deg)`;
-                } else {
-                    idCard.style.transform = `rotate(${rotation}deg)`;
-                }
-            }
-        });
     </script>
 
 </body>
