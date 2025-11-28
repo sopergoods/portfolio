@@ -566,29 +566,25 @@
         /* DANGLING ID CARD */
         /* -------------------------------------- */
         .id-card-container {
-            position: absolute;
-            top: -50px;
-            right: 100px;
-            animation: float 3s ease-in-out infinite;
+            position: fixed;
+            top: 120px;
+            right: 80px;
+            z-index: 999;
+            pointer-events: none;
         }
 
         .id-string {
             width: 2px;
-            height: 80px;
-            background: linear-gradient(180deg, #ff3c3c, transparent);
+            height: 100px;
+            background: linear-gradient(180deg, rgba(255,60,60,0.8), rgba(255,60,60,0.3));
             margin: 0 auto;
-            transform-origin: top;
-            animation: swing 2s ease-in-out infinite;
-        }
-
-        @keyframes swing {
-            0%, 100% { transform: rotate(0deg); }
-            25% { transform: rotate(5deg); }
-            75% { transform: rotate(-5deg); }
+            transform-origin: top center;
+            transition: transform 0.1s ease-out;
         }
 
         .id-card {
             width: 200px;
+            height: 280px;
             background: linear-gradient(135deg, #1a1a1a, #0d0d0d);
             border: 2px solid #ff3c3c;
             border-radius: 15px;
@@ -597,28 +593,55 @@
             transform-origin: top center;
             cursor: grab;
             user-select: none;
-            transition: transform 0.1s;
+            pointer-events: auto;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+            backface-visibility: hidden;
         }
 
         .id-card:active {
             cursor: grabbing;
         }
 
-        .id-card.dragging {
-            transition: none;
-            z-index: 1000;
+        .id-card-front,
+        .id-card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            backface-visibility: hidden;
+            border-radius: 15px;
+            padding: 20px;
         }
 
-        .id-card.bouncing {
-            animation: cardBounce 0.6s ease-out;
+        .id-card-front {
+            transform: rotateY(0deg);
         }
 
-        @keyframes cardBounce {
-            0% { transform: scale(1); }
-            25% { transform: scale(1.1) rotate(5deg); }
-            50% { transform: scale(0.9) rotate(-5deg); }
-            75% { transform: scale(1.05) rotate(3deg); }
-            100% { transform: scale(1) rotate(0deg); }
+        .id-card-back {
+            background: linear-gradient(135deg, #2a0000, #0d0d0d);
+            transform: rotateY(180deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #ff3c3c;
+        }
+
+        .id-card-back-text {
+            text-align: center;
+            color: #ff3c3c;
+            font-size: 1.3rem;
+            font-weight: 700;
+            line-height: 1.4;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px rgba(255,60,60,0.5);
+        }
+
+        .id-card.flipped {
+            transform: rotateY(180deg);
         }
 
         .id-photo {
@@ -710,7 +733,7 @@
             }
 
             .id-string {
-                display: none;
+                height: 60px;
             }
 
             .character-section {
@@ -741,6 +764,31 @@
     <section class="hero" id="home">
         <div class="float f1"></div>
         <div class="float f2"></div>
+
+        <!-- DANGLING ID CARD (Fixed Position) -->
+        <div class="id-card-container" id="idCardContainer">
+            <div class="id-string" id="idString"></div>
+            <div class="id-card" id="idCard">
+                <div class="id-card-front">
+                    <div class="id-photo">
+                        <!-- Replace the src below with your actual photo URL -->
+                        <div class="id-placeholder">📷</div>
+                        <!-- Uncomment and add your photo:
+                        <img src="your-photo.jpg" alt="Vince"> -->
+                    </div>
+                    <div class="id-info">
+                        <div class="id-name">VINCE ASUTILLA</div>
+                        <div class="id-title">CS Student</div>
+                        <div class="id-number">ID: 2023-DEV-001</div>
+                    </div>
+                </div>
+                <div class="id-card-back">
+                    <div class="id-card-back-text">
+                        Set Your<br>Heart<br>Ablaze
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <h2>Hi, I'm <span>Vince Timothy Asutilla</span></h2>
         <p>Computer Science Student</p>
@@ -811,23 +859,6 @@
                     <rect x="102" y="157" width="3" height="3" fill="#666" rx="1"/>
                     <rect x="107" y="157" width="3" height="3" fill="#666" rx="1"/>
                 </svg>
-            </div>
-        </div>
-
-        <div class="id-card-container">
-            <div class="id-string"></div>
-            <div class="id-card">
-                <div class="id-photo">
-                    <!-- Replace the src below with your actual photo URL -->
-                    <div class="id-placeholder">📷</div>
-                    <!-- Uncomment and add your photo:
-                    <img src="your-photo.jpg" alt="Vince"> -->
-                </div>
-                <div class="id-info">
-                    <div class="id-name">VINCE ASUTILLA</div>
-                    <div class="id-title">CS Student</div>
-                    <div class="id-number">ID: 2023-DEV-001</div>
-                </div>
             </div>
         </div>
     </div>
@@ -989,66 +1020,174 @@
             observer.observe(section);
         });
 
-        /* Draggable and Bouncing ID Card */
-        const idCard = document.querySelector('.id-card');
-        const idCardContainer = document.querySelector('.id-card-container');
+        /* Draggable and Bouncing ID Card with Physics */
+        const idCard = document.getElementById('idCard');
+        const idString = document.getElementById('idString');
+        const idCardContainer = document.getElementById('idCardContainer');
+        
         let isDragging = false;
-        let currentX;
-        let currentY;
-        let initialX;
-        let initialY;
+        let startX, startY;
+        let currentX = 0, currentY = 0;
+        let velocityX = 0, velocityY = 0;
+        let lastX = 0, lastY = 0;
+        let lastTime = Date.now();
+        let rotation = 0;
+        let rotationVelocity = 0;
+        let isFlipped = false;
 
-        idCard.addEventListener('mousedown', dragStart);
-        idCard.addEventListener('touchstart', dragStart);
+        const gravity = 0.5;
+        const damping = 0.98;
+        const elasticity = 0.7;
+        const stringLength = 100;
+        const restX = 0;
+        const restY = 0;
 
+        idCard.addEventListener('mousedown', startDrag);
+        idCard.addEventListener('touchstart', startDrag);
         document.addEventListener('mousemove', drag);
         document.addEventListener('touchmove', drag);
+        document.addEventListener('mouseup', stopDrag);
+        document.addEventListener('touchend', stopDrag);
 
-        document.addEventListener('mouseup', dragEnd);
-        document.addEventListener('touchend', dragEnd);
-
-        function dragStart(e) {
-            if (e.type === 'touchstart') {
-                initialX = e.touches[0].clientX - idCardContainer.offsetLeft;
-                initialY = e.touches[0].clientY - idCardContainer.offsetTop;
-            } else {
-                initialX = e.clientX - idCardContainer.offsetLeft;
-                initialY = e.clientY - idCardContainer.offsetTop;
-            }
-
+        function startDrag(e) {
             isDragging = true;
-            idCard.classList.add('dragging');
-            idCard.classList.remove('bouncing');
+            const rect = idCard.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            
+            startX = clientX - currentX;
+            startY = clientY - currentY;
+            lastX = currentX;
+            lastY = currentY;
+            lastTime = Date.now();
+            velocityX = 0;
+            velocityY = 0;
+            rotationVelocity = 0;
+
+            idCard.style.transition = 'none';
         }
 
         function drag(e) {
-            if (isDragging) {
-                e.preventDefault();
-                
-                if (e.type === 'touchmove') {
-                    currentX = e.touches[0].clientX - initialX;
-                    currentY = e.touches[0].clientY - initialY;
-                } else {
-                    currentX = e.clientX - initialX;
-                    currentY = e.clientY - initialY;
-                }
+            if (!isDragging) return;
+            e.preventDefault();
 
-                idCardContainer.style.left = currentX + 'px';
-                idCardContainer.style.top = currentY + 'px';
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            
+            currentX = clientX - startX;
+            currentY = clientY - startY;
+
+            const now = Date.now();
+            const dt = (now - lastTime) / 16;
+            velocityX = (currentX - lastX) / dt;
+            velocityY = (currentY - lastY) / dt;
+
+            lastX = currentX;
+            lastY = currentY;
+            lastTime = now;
+
+            updatePosition();
+        }
+
+        function stopDrag() {
+            if (!isDragging) return;
+            isDragging = false;
+
+            // Flip card if pulled far enough
+            if (Math.abs(currentX) > 150 || Math.abs(currentY) > 150) {
+                isFlipped = !isFlipped;
+                idCard.classList.toggle('flipped');
+            }
+
+            animate();
+        }
+
+        function animate() {
+            if (isDragging) return;
+
+            // Apply gravity
+            velocityY += gravity;
+
+            // Apply spring force back to rest position
+            const dx = restX - currentX;
+            const dy = restY - currentY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance > 0) {
+                const springForce = distance * 0.05;
+                velocityX += (dx / distance) * springForce;
+                velocityY += (dy / distance) * springForce;
+            }
+
+            // Apply damping
+            velocityX *= damping;
+            velocityY *= damping;
+
+            // Update position
+            currentX += velocityX;
+            currentY += velocityY;
+
+            // Boundary collision with elasticity
+            const maxX = window.innerWidth / 4;
+            const maxY = window.innerHeight / 4;
+
+            if (currentX > maxX) {
+                currentX = maxX;
+                velocityX *= -elasticity;
+                rotationVelocity += velocityX * 0.5;
+            } else if (currentX < -maxX) {
+                currentX = -maxX;
+                velocityX *= -elasticity;
+                rotationVelocity += velocityX * 0.5;
+            }
+
+            if (currentY > maxY) {
+                currentY = maxY;
+                velocityY *= -elasticity;
+                rotationVelocity += velocityX * 0.5;
+            } else if (currentY < -maxY) {
+                currentY = -maxY;
+                velocityY *= -elasticity;
+                rotationVelocity += velocityX * 0.5;
+            }
+
+            // Update rotation based on velocity
+            rotationVelocity += velocityX * 0.2;
+            rotationVelocity *= 0.95;
+            rotation += rotationVelocity;
+
+            updatePosition();
+
+            // Continue animation if still moving
+            if (Math.abs(velocityX) > 0.1 || Math.abs(velocityY) > 0.1 || Math.abs(currentX - restX) > 1 || Math.abs(currentY - restY) > 1) {
+                requestAnimationFrame(animate);
+            } else {
+                currentX = restX;
+                currentY = restY;
+                rotation = 0;
+                updatePosition();
             }
         }
 
-        function dragEnd(e) {
-            if (isDragging) {
-                isDragging = false;
-                idCard.classList.remove('dragging');
-                idCard.classList.add('bouncing');
-                
-                setTimeout(() => {
-                    idCard.classList.remove('bouncing');
-                }, 600);
+        function updatePosition() {
+            const distance = Math.sqrt(currentX * currentX + currentY * currentY);
+            const stringAngle = Math.atan2(currentX, currentY) * (180 / Math.PI);
+            
+            idCardContainer.style.transform = `translate(${currentX}px, ${currentY}px)`;
+            idString.style.transform = `rotate(${stringAngle}deg)`;
+            
+            if (!isFlipped) {
+                idCard.style.transform = `rotate(${rotation}deg)`;
             }
         }
+
+        // Click to flip
+        idCard.addEventListener('click', (e) => {
+            if (!isDragging && Math.abs(velocityX) < 1 && Math.abs(velocityY) < 1) {
+                isFlipped = !isFlipped;
+                idCard.classList.toggle('flipped');
+            }
+        });
     </script>
 
 </body>
