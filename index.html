@@ -409,7 +409,7 @@
             padding: 1.5rem 2rem;
             border-radius: 12px;
             text-align: center;
-            width: 220px;
+            width: 240px;
             transition: .3s;
             cursor: pointer;
             opacity: 0;
@@ -526,15 +526,40 @@
         }
 
         .character {
-            font-size: 15rem;
-            animation: wave 3s ease-in-out infinite;
+            width: 250px;
+            height: 250px;
+            animation: characterFloat 3s ease-in-out infinite;
             filter: drop-shadow(0 10px 30px rgba(255,60,60,0.3));
+            position: relative;
         }
 
-        @keyframes wave {
+        @keyframes characterFloat {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+
+        /* SVG Character Styles */
+        .character svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .char-head { animation: headBob 2s ease-in-out infinite; transform-origin: center; }
+        @keyframes headBob {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .char-arm-left { animation: armWaveLeft 2.5s ease-in-out infinite; transform-origin: top right; }
+        @keyframes armWaveLeft {
             0%, 100% { transform: rotate(0deg); }
-            25% { transform: rotate(10deg); }
-            75% { transform: rotate(-10deg); }
+            50% { transform: rotate(-20deg); }
+        }
+
+        .char-arm-right { animation: armWaveRight 2.5s ease-in-out infinite 0.3s; transform-origin: top left; }
+        @keyframes armWaveRight {
+            0%, 100% { transform: rotate(0deg); }
+            50% { transform: rotate(20deg); }
         }
 
         /* -------------------------------------- */
@@ -570,6 +595,30 @@
             padding: 20px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.5);
             transform-origin: top center;
+            cursor: grab;
+            user-select: none;
+            transition: transform 0.1s;
+        }
+
+        .id-card:active {
+            cursor: grabbing;
+        }
+
+        .id-card.dragging {
+            transition: none;
+            z-index: 1000;
+        }
+
+        .id-card.bouncing {
+            animation: cardBounce 0.6s ease-out;
+        }
+
+        @keyframes cardBounce {
+            0% { transform: scale(1); }
+            25% { transform: scale(1.1) rotate(5deg); }
+            50% { transform: scale(0.9) rotate(-5deg); }
+            75% { transform: scale(1.05) rotate(3deg); }
+            100% { transform: scale(1) rotate(0deg); }
         }
 
         .id-photo {
@@ -711,7 +760,7 @@
         <p class="about-text">
             I'm a passionate Computer Science student at Manuel S. Enverga University Foundation,
             currently in my 2nd semester. I specialize in web development and have a strong foundation
-            in multiple programming languages. As a Dean's Lister, I'm eager to apply my skills
+            in multiple programming languages. I'm eager to apply my skills
             in real-world projects and internships.
         </p>
     </section>
@@ -721,7 +770,48 @@
         <div class="scrolling-text">VINCE • DEVELOPER • CODER • DESIGNER • VINCE • DEVELOPER • CODER • DESIGNER • </div>
         
         <div class="character-container">
-            <div class="character">👨‍💻</div>
+            <div class="character">
+                <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Body -->
+                    <ellipse cx="100" cy="140" rx="35" ry="45" fill="#ff3c3c"/>
+                    
+                    <!-- Head -->
+                    <g class="char-head">
+                        <circle cx="100" cy="70" r="35" fill="#ff5252"/>
+                        <!-- Eyes -->
+                        <circle cx="90" cy="65" r="4" fill="#0d0d0d"/>
+                        <circle cx="110" cy="65" r="4" fill="#0d0d0d"/>
+                        <!-- Smile -->
+                        <path d="M 85 75 Q 100 85 115 75" stroke="#0d0d0d" stroke-width="3" fill="none" stroke-linecap="round"/>
+                        <!-- Laptop on head -->
+                        <rect x="75" y="45" width="50" height="3" fill="#eaeaea" rx="1"/>
+                    </g>
+                    
+                    <!-- Left Arm -->
+                    <g class="char-arm-left">
+                        <rect x="60" y="120" width="8" height="35" fill="#ff4444" rx="4"/>
+                        <circle cx="64" cy="158" r="6" fill="#ff6b6b"/>
+                    </g>
+                    
+                    <!-- Right Arm -->
+                    <g class="char-arm-right">
+                        <rect x="132" y="120" width="8" height="35" fill="#ff4444" rx="4"/>
+                        <circle cx="136" cy="158" r="6" fill="#ff6b6b"/>
+                    </g>
+                    
+                    <!-- Legs -->
+                    <rect x="85" y="175" width="10" height="20" fill="#c71d1d" rx="5"/>
+                    <rect x="105" y="175" width="10" height="20" fill="#c71d1d" rx="5"/>
+                    
+                    <!-- Keyboard (held by character) -->
+                    <rect x="85" y="155" width="30" height="10" fill="#2a2a2a" rx="2"/>
+                    <rect x="87" y="157" width="3" height="3" fill="#666" rx="1"/>
+                    <rect x="92" y="157" width="3" height="3" fill="#666" rx="1"/>
+                    <rect x="97" y="157" width="3" height="3" fill="#666" rx="1"/>
+                    <rect x="102" y="157" width="3" height="3" fill="#666" rx="1"/>
+                    <rect x="107" y="157" width="3" height="3" fill="#666" rx="1"/>
+                </svg>
+            </div>
         </div>
 
         <div class="id-card-container">
@@ -806,7 +896,7 @@
                     <h3>Thesis Judging System</h3>
                     <p>Web-based evaluation system with automation and scoring.</p>
                     <div class="tags">
-                        <span>PHP</span><span>MySQL</span><span>JS</span>
+                        <span>HTML</span><span>MySQL</span><span>JS</span>
                     </div>
                 </div>
             </div>
@@ -844,16 +934,16 @@
 
         <div class="contact-grid">
             <a href="mailto:asutillavince@gmail.com" class="contact-item">
-                📧 <br><span>Email Me</span>
+                📧 <br><span>asutillavince@gmail.com</span>
             </a>
             <a href="tel:+639614075762" class="contact-item">
-                📱 <br><span>Call Me</span>
+                📱 <br><span>09614075762</span>
             </a>
             <a href="#" class="contact-item">
                 💼 <br><span>LinkedIn</span>
             </a>
             <a href="https://github.com/sopergoods" target="_blank" class="contact-item">
-                🐙 <br><span>GitHub</span>
+                🐙 <br><span>github.com/sopergoods</span>
             </a>
         </div>
     </section>
@@ -898,6 +988,67 @@
         document.querySelectorAll('section').forEach(section => {
             observer.observe(section);
         });
+
+        /* Draggable and Bouncing ID Card */
+        const idCard = document.querySelector('.id-card');
+        const idCardContainer = document.querySelector('.id-card-container');
+        let isDragging = false;
+        let currentX;
+        let currentY;
+        let initialX;
+        let initialY;
+
+        idCard.addEventListener('mousedown', dragStart);
+        idCard.addEventListener('touchstart', dragStart);
+
+        document.addEventListener('mousemove', drag);
+        document.addEventListener('touchmove', drag);
+
+        document.addEventListener('mouseup', dragEnd);
+        document.addEventListener('touchend', dragEnd);
+
+        function dragStart(e) {
+            if (e.type === 'touchstart') {
+                initialX = e.touches[0].clientX - idCardContainer.offsetLeft;
+                initialY = e.touches[0].clientY - idCardContainer.offsetTop;
+            } else {
+                initialX = e.clientX - idCardContainer.offsetLeft;
+                initialY = e.clientY - idCardContainer.offsetTop;
+            }
+
+            isDragging = true;
+            idCard.classList.add('dragging');
+            idCard.classList.remove('bouncing');
+        }
+
+        function drag(e) {
+            if (isDragging) {
+                e.preventDefault();
+                
+                if (e.type === 'touchmove') {
+                    currentX = e.touches[0].clientX - initialX;
+                    currentY = e.touches[0].clientY - initialY;
+                } else {
+                    currentX = e.clientX - initialX;
+                    currentY = e.clientY - initialY;
+                }
+
+                idCardContainer.style.left = currentX + 'px';
+                idCardContainer.style.top = currentY + 'px';
+            }
+        }
+
+        function dragEnd(e) {
+            if (isDragging) {
+                isDragging = false;
+                idCard.classList.remove('dragging');
+                idCard.classList.add('bouncing');
+                
+                setTimeout(() => {
+                    idCard.classList.remove('bouncing');
+                }, 600);
+            }
+        }
     </script>
 
 </body>
