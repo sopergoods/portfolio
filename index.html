@@ -630,7 +630,6 @@
             pointer-events: auto;
             position: relative;
             transform-style: preserve-3d;
-            transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
             backface-visibility: hidden;
             animation: cardSwing 1.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) 0.5s backwards;
         }
@@ -696,7 +695,15 @@
         }
 
         .id-card.flipped {
-            transform: rotateY(180deg);
+            transform: rotateY(180deg) !important;
+        }
+
+        .id-card.flipped .id-card-front {
+            visibility: hidden;
+        }
+
+        .id-card.flipped .id-card-back {
+            visibility: visible;
         }
 
         .id-photo {
@@ -1089,10 +1096,11 @@
         let rotation = 0;
         let rotationVelocity = 0;
         let isFlipped = false;
+        let animationFrame = null;
 
-        const gravity = 0.5;
-        const damping = 0.98;
-        const elasticity = 0.7;
+        const gravity = 0.4;
+        const damping = 0.96;
+        const elasticity = 0.6;
         const stringLength = 100;
         const restX = 0;
         const restY = 0;
@@ -1100,13 +1108,19 @@
         idCard.addEventListener('mousedown', startDrag);
         idCard.addEventListener('touchstart', startDrag);
         document.addEventListener('mousemove', drag);
-        document.addEventListener('touchmove', drag);
+        document.addEventListener('touchmove', drag, { passive: false });
         document.addEventListener('mouseup', stopDrag);
         document.addEventListener('touchend', stopDrag);
 
         function startDrag(e) {
+            e.preventDefault();
             isDragging = true;
-            const rect = idCard.getBoundingClientRect();
+            
+            if (animationFrame) {
+                cancelAnimationFrame(animationFrame);
+                animationFrame = null;
+            }
+
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
             const clientY = e.touches ? e.touches[0].clientY : e.clientY;
             
@@ -1118,8 +1132,6 @@
             velocityX = 0;
             velocityY = 0;
             rotationVelocity = 0;
-
-            idCard.style.transition = 'none';
         }
 
         function drag(e) {
@@ -1129,13 +1141,17 @@
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
             const clientY = e.touches ? e.touches[0].clientY : e.clientY;
             
-            currentX = clientX - startX;
-            currentY = clientY - startY;
+            const newX = clientX - startX;
+            const newY = clientY - startY;
 
             const now = Date.now();
-            const dt = (now - lastTime) / 16;
-            velocityX = (currentX - lastX) / dt;
-            velocityY = (currentY - lastY) / dt;
+            const dt = Math.max((now - lastTime) / 16, 1);
+            
+            velocityX = (newX - currentX) / dt;
+            velocityY = (newY - currentY) / dt;
+
+            currentX = newX;
+            currentY = newY;
 
             lastX = currentX;
             lastY = currentY;
@@ -1144,12 +1160,13 @@
             updatePosition();
         }
 
-        function stopDrag() {
+        function stopDrag(e) {
             if (!isDragging) return;
             isDragging = false;
 
             // Flip card if pulled far enough
-            if (Math.abs(currentX) > 150 || Math.abs(currentY) > 150) {
+            const distance = Math.sqrt(currentX * currentX + currentY * currentY);
+            if (distance > 150) {
                 isFlipped = !isFlipped;
                 idCard.classList.toggle('flipped');
             }
@@ -1168,8 +1185,8 @@
             const dy = restY - currentY;
             const distance = Math.sqrt(dx * dx + dy * dy);
 
-            if (distance > 0) {
-                const springForce = distance * 0.05;
+            if (distance > 0.5) {
+                const springForce = distance * 0.03;
                 velocityX += (dx / distance) * springForce;
                 velocityY += (dy / distance) * springForce;
             }
@@ -1183,64 +1200,77 @@
             currentY += velocityY;
 
             // Boundary collision with elasticity
-            const maxX = window.innerWidth / 4;
-            const maxY = window.innerHeight / 4;
+            const maxX = 300;
+            const maxY = 400;
 
-            if (currentX > maxX) {
-                currentX = maxX;
+            if (Math.abs(currentX) > maxX) {
+                currentX = currentX > 0 ? maxX : -maxX;
                 velocityX *= -elasticity;
-                rotationVelocity += velocityX * 0.5;
-            } else if (currentX < -maxX) {
-                currentX = -maxX;
-                velocityX *= -elasticity;
-                rotationVelocity += velocityX * 0.5;
+                rotationVelocity += velocityX * 0.3;
             }
 
-            if (currentY > maxY) {
-                currentY = maxY;
+            if (Math.abs(currentY) > maxY) {
+                currentY = currentY > 0 ? maxY : -maxY;
                 velocityY *= -elasticity;
-                rotationVelocity += velocityX * 0.5;
-            } else if (currentY < -maxY) {
-                currentY = -maxY;
-                velocityY *= -elasticity;
-                rotationVelocity += velocityX * 0.5;
+                rotationVelocity += velocityX * 0.3;
             }
 
             // Update rotation based on velocity
-            rotationVelocity += velocityX * 0.2;
-            rotationVelocity *= 0.95;
+            rotationVelocity += velocityX * 0.15;
+            rotationVelocity *= 0.93;
             rotation += rotationVelocity;
+
+            // Limit rotation
+            rotation = rotation % 360;
 
             updatePosition();
 
             // Continue animation if still moving
-            if (Math.abs(velocityX) > 0.1 || Math.abs(velocityY) > 0.1 || Math.abs(currentX - restX) > 1 || Math.abs(currentY - restY) > 1) {
-                requestAnimationFrame(animate);
+            const isMoving = Math.abs(velocityX) > 0.05 || 
+                           Math.abs(velocityY) > 0.05 || 
+                           Math.abs(currentX - restX) > 0.5 || 
+                           Math.abs(currentY - restY) > 0.5 ||
+                           Math.abs(rotationVelocity) > 0.05;
+
+            if (isMoving) {
+                animationFrame = requestAnimationFrame(animate);
             } else {
+                // Snap to rest position
                 currentX = restX;
                 currentY = restY;
                 rotation = 0;
+                rotationVelocity = 0;
+                velocityX = 0;
+                velocityY = 0;
                 updatePosition();
+                animationFrame = null;
             }
         }
 
         function updatePosition() {
-            const distance = Math.sqrt(currentX * currentX + currentY * currentY);
-            const stringAngle = Math.atan2(currentX, currentY) * (180 / Math.PI);
+            const stringAngle = Math.atan2(currentX, Math.max(currentY, 1)) * (180 / Math.PI);
             
             idCardContainer.style.transform = `translate(${currentX}px, ${currentY}px)`;
             idString.style.transform = `rotate(${stringAngle}deg)`;
             
             if (!isFlipped) {
                 idCard.style.transform = `rotate(${rotation}deg)`;
+            } else {
+                idCard.style.transform = `rotateY(180deg) rotate(${rotation}deg)`;
             }
         }
 
-        // Click to flip
+        // Click to flip (only when card is at rest)
         idCard.addEventListener('click', (e) => {
-            if (!isDragging && Math.abs(velocityX) < 1 && Math.abs(velocityY) < 1) {
+            if (!isDragging && Math.abs(velocityX) < 0.1 && Math.abs(velocityY) < 0.1) {
                 isFlipped = !isFlipped;
                 idCard.classList.toggle('flipped');
+                
+                if (isFlipped) {
+                    idCard.style.transform = `rotateY(180deg) rotate(${rotation}deg)`;
+                } else {
+                    idCard.style.transform = `rotate(${rotation}deg)`;
+                }
             }
         });
     </script>
