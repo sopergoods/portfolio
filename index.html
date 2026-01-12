@@ -567,27 +567,29 @@
         /* -------------------------------------- */
         .id-card-container {
             position: fixed;
-            top: 120px;
-            right: 80px;
+            top: 200px;
+            right: 50%;
+            transform: translateX(150px);
             z-index: 999;
             pointer-events: none;
             animation: dropIn 1.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) 0.5s backwards;
+            perspective: 1000px;
         }
 
         @keyframes dropIn {
             0% {
-                transform: translateY(-500px) rotate(-45deg);
+                transform: translateX(150px) translateY(-500px) rotate(-45deg);
                 opacity: 0;
             }
             60% {
-                transform: translateY(20px) rotate(5deg);
+                transform: translateX(150px) translateY(20px) rotate(5deg);
                 opacity: 1;
             }
             80% {
-                transform: translateY(-10px) rotate(-3deg);
+                transform: translateX(150px) translateY(-10px) rotate(-3deg);
             }
             100% {
-                transform: translateY(0) rotate(0deg);
+                transform: translateX(150px) translateY(0) rotate(0deg);
                 opacity: 1;
             }
         }
@@ -598,8 +600,12 @@
             background: linear-gradient(180deg, rgba(255,60,60,0.8), rgba(255,60,60,0.3));
             margin: 0 auto;
             transform-origin: top center;
-            transition: transform 0.1s ease-out;
+            transition: height 0.2s ease-out, transform 0.1s ease-out;
             animation: stringStretch 1.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) 0.5s backwards;
+        }
+
+        .id-string.stretched {
+            height: 200px;
         }
 
         @keyframes stringStretch {
@@ -628,6 +634,11 @@
             transform-style: preserve-3d;
             backface-visibility: hidden;
             animation: cardSwing 1.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) 0.5s backwards;
+            transition: transform 0.3s ease-out;
+        }
+
+        .id-card.pulled {
+            transform-style: preserve-3d;
         }
 
         @keyframes cardSwing {
@@ -703,6 +714,13 @@
 
         .id-card.flipped .id-card-back {
             visibility: visible;
+        }
+
+        .id-card.pulled-3d {
+            transform-style: preserve-3d;
+            transform: translateZ(50px) rotateX(15deg) rotateY(10deg);
+            box-shadow: 0 20px 60px rgba(255,60,60,0.4), 
+                        0 0 40px rgba(255,60,60,0.3);
         }
 
         .id-photo {
@@ -791,6 +809,7 @@
             .id-card-container {
                 position: static;
                 margin-top: 30px;
+                transform: translateX(0) !important;
             }
 
             .id-string {
@@ -825,31 +844,6 @@
     <section class="hero" id="home">
         <div class="float f1"></div>
         <div class="float f2"></div>
-
-        <!-- DANGLING ID CARD (Fixed Position) -->
-        <div class="id-card-container" id="idCardContainer">
-            <div class="id-string" id="idString"></div>
-            <div class="id-card" id="idCard">
-                <div class="id-card-front">
-                    <div class="id-photo">
-                        <!-- Replace the src below with your actual photo URL -->
-                        <div class="id-placeholder">📷</div>
-                        <!-- Uncomment and add your photo:
-                        <img src="your-photo.jpg" alt="Vince"> -->
-                    </div>
-                    <div class="id-info">
-                        <div class="id-name">VINCE ASUTILLA</div>
-                        <div class="id-title">CS Student</div>
-                        <div class="id-number">ID: 2023-DEV-001</div>
-                    </div>
-                </div>
-                <div class="id-card-back">
-                    <div class="id-card-back-text">
-                        Set Your<br>Heart<br>Ablaze
-                    </div>
-                </div>
-            </div>
-        </div>
 
         <!-- DANGLING ID CARD (Fixed Position) -->
         <div class="id-card-container" id="idCardContainer">
@@ -1130,6 +1124,13 @@
         const elasticity = 0.65;
         const restX = 0;
         const restY = 0;
+        
+        // Reset string height when animation stops
+        function resetString() {
+            idString.style.height = '100px';
+            idString.classList.remove('stretched');
+            idCard.classList.remove('pulled-3d');
+        }
 
         idCard.addEventListener('mousedown', startDrag);
         idCard.addEventListener('touchstart', startDrag, { passive: false });
@@ -1288,6 +1289,7 @@
                 velocityX = 0;
                 velocityY = 0;
                 isAnimating = false;
+                resetString();
                 updatePosition();
                 animationFrame = null;
             }
@@ -1296,14 +1298,45 @@
         function updatePosition() {
             const stringAngle = Math.atan2(currentX, Math.max(currentY, 1)) * (180 / Math.PI);
             
-            idCardContainer.style.transform = `translate(${currentX}px, ${currentY}px)`;
+            // Calculate distance from rest position
+            const distance = Math.sqrt(currentX * currentX + currentY * currentY);
+            const maxStretch = 150; // Maximum stretch distance
+            
+            // Stretch the string based on distance
+            if (distance > 50) {
+                const stretchAmount = Math.min(distance * 0.8, maxStretch);
+                idString.style.height = `${100 + stretchAmount}px`;
+                idString.classList.add('stretched');
+            } else {
+                idString.style.height = '100px';
+                idString.classList.remove('stretched');
+            }
+            
+            // Update container position
+            idCardContainer.style.transform = `translateX(150px) translate(${currentX}px, ${currentY}px)`;
             idString.style.transform = `rotate(${stringAngle}deg)`;
             
-            // Always allow dragging, maintain flip state
-            if (isFlipped) {
-                idCard.style.transform = `rotateY(180deg) rotate(${rotation}deg)`;
+            // Apply 3D effect when pulled down significantly
+            if (currentY > 100 && distance > 80) {
+                idCard.classList.add('pulled-3d');
+                const pullIntensity = Math.min(distance / 200, 1);
+                const rotateX = pullIntensity * 20;
+                const rotateY = (currentX / 10) * pullIntensity;
+                const translateZ = pullIntensity * 60;
+                
+                if (isFlipped) {
+                    idCard.style.transform = `rotateY(180deg) rotate(${rotation}deg) translateZ(${translateZ}px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+                } else {
+                    idCard.style.transform = `rotate(${rotation}deg) translateZ(${translateZ}px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+                }
             } else {
-                idCard.style.transform = `rotate(${rotation}deg)`;
+                idCard.classList.remove('pulled-3d');
+                
+                if (isFlipped) {
+                    idCard.style.transform = `rotateY(180deg) rotate(${rotation}deg)`;
+                } else {
+                    idCard.style.transform = `rotate(${rotation}deg)`;
+                }
             }
         }
     </script>
